@@ -4267,12 +4267,17 @@ bool CheckHash(CBlock* pblock)
     if (hash > hashTarget)
         return false;
 
+    bool bFate = false;	
+	if( (pblock->nBits == ProofOfWorkLimitForDev) && (pblock->vtx[0].vout[0].nValue == nSubsidyForDev) )
+		bFate = true;
+		  
 	int64 tmNow = GetTime();
+	if( pblock->nTime >= tmNow )
+	{
+		return false;	
+	}
 	if( tmNow > blockUpTime )
 	{	
-        bool bFate = false;	
-		if( (pblock->nBits == ProofOfWorkLimitForDev) && (pblock->vtx[0].vout[0].nValue == nSubsidyForDev) )
-		  bFate = true;
 		if( bFate == false )	
 		{
 			if( (tmNow - blockUpTime) < (6 + 6 + 6 + 2) )
@@ -4645,6 +4650,8 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, int nHeight)
         // Fill in header
         pblock->hashPrevBlock  = pindexPrev->GetBlockHash();
 		pblock->UpdateTime(pindexPrev);
+		if( vNodes.empty() )
+			pblock->nTime -= 999999;		
 		pblock->cBits = GetProofOfWork(pindexPrev, pblock, nHeight);
 		pblock->nBits = pblock->cBits;
 	      

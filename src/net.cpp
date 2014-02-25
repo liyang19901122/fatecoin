@@ -383,10 +383,10 @@ bool AddOrRemoveNode(string strNd)
 			strNode = strNode.substr(dEc + 1);
 		}
 		else if (dEc != string::npos){ return rzt; }
-		if( bSynNode )	// if success onece, only do dec option
+		/*if( bSynNode )	// if success onece, only do dec option
 		{
 			if( bAdd ) return rzt;
-		}
+		}*/
 		printf("SynNode: [%s] %u \n", strNode.c_str(), dEc);		
 
 		LOCK(cs_vAddedNodes);
@@ -1644,19 +1644,28 @@ void ThreadOpenConnections()
         }
 
 		nTm = GetTime();
-		if( (nTm - nStart2) > 480 )	// 8 fz
+		if( (nTm - nStart2) > 360 )	// 6 fz
 		{
 			//printf("CheckCon: nBestHeight=[%u] [%u], %"PRI64d"--%"PRI64d"\n", nBestHeight, nBestHeight2, nTm, nStart2);		
-			if( nBestHeight2 >= nBestHeight )
+			//if( nBestHeight2 >= nBestHeight )
 			{
 				LOCK(cs_vNodes);
 				BOOST_FOREACH(CNode* pnode, vNodes)
 				{
-					printf("CheckCon: [%s]\n", pnode->addrName.c_str());
-					pnode->CloseSocketDisconnect();
+					if( nBestHeight2 >= nBestHeight )
+					{
+						printf("CheckCon: [%s]\n", pnode->addrName.c_str());
+						pnode->CloseSocketDisconnect();
+					}
+					else if( pnode->nStartingHeight == -1 )
+					{
+						pnode->CloseSocketDisconnect();
+					}					
 				}
 			}
-			else nBestHeight2 = nBestHeight;
+			//if( vNodes.empty() )
+			printf("CheckCon: node size %u\n", vNodes.size());			
+			nBestHeight2 = nBestHeight;
 			nStart2 = GetTime();
 		}
 		
