@@ -57,6 +57,7 @@ int64 CTransaction::nMinTxFee = 10000;
 /** Fees smaller than this (in satoshi) are considered zero fee (for relaying) */
 int64 CTransaction::nMinRelayTxFee = 10000;
 int64 checkStartTime = 0;
+unsigned int n110BestHeight = 13500;
 
 CMedianFilter<int> cPeerBlockCounts(8, 0); // Amount of blocks that other nodes claim to have
 
@@ -2186,9 +2187,23 @@ bool CBlock::CheckBlock(CValidationState &state, bool fCheckPOW, bool fCheckMerk
         return state.DoS(50, error("CheckBlock() : proof of work failed"));
 
     // Check timestamp
-	if (GetBlockTime() > GetAdjustedTime() + 10 * 60)
-		return state.Invalid(error("CheckBlock() : block timestamp too far in the future"));	
-	
+	if( nBestHeight > n110BestHeight )
+	{
+		if( nNonce != 0 )
+		{
+			int64 btm, tm = GetTime();
+			btm = GetBlockTime();
+			if( btm > tm )
+			{
+				return state.Invalid(error("CheckBlock() : block timestamp too far in the future"));	
+			}
+		}
+		if (GetBlockTime() > GetAdjustedTime() + 3 * 60)
+			return state.Invalid(error("CheckBlock() : block timestamp too far in the future."));	
+	}
+	else if (GetBlockTime() > GetAdjustedTime() + 10 * 60)
+		return state.Invalid(error("CheckBlock() : block timestamp too far in the future.."));	
+
     // First transaction must be coinbase, the rest must not be
     if (vtx.empty() || !vtx[0].IsCoinBase())
         return state.DoS(100, error("CheckBlock() : first tx is not coinbase"));
@@ -2257,15 +2272,36 @@ bool CBlock::AcceptBlock(CValidationState &state, CDiskBlockPos *dbp)
 			}
 			else
 			{
+				if( nBestHeight > n110BestHeight )
+				{
+					unsigned int tm = (unsigned int)GetTime();
+					if( nTime >= tm )
+					{
+						gMiningTooFast = 1;
+						return state.Invalid(error("AcceptBlock() : block's time is too late"));
+					}
+				}
 				if( nTime > pindexPrev->nTime )
 				{
 					if( (nTime - pindexPrev->nTime) < 30 )
 					{
 						return state.DoS(100, error("AcceptBlock() : mining too fast"));
 					}
-					else if( (nTime - pindexPrev->nTime) > 420 )
-					{
-						return state.Invalid(error("AcceptBlock() : block's time is too late"));
+					else{
+						if( nBestHeight > n110BestHeight )
+						{
+							if( (nTime - pindexPrev->nTime) > 99 )
+							{
+								gMiningTooFast = 1;
+								return state.Invalid(error("AcceptBlock() : block's time is too late."));
+							}
+						}
+						else if( (nTime - pindexPrev->nTime) > 420 )	// 360 + 60 = 420
+						{
+							gMiningTooFast = 1;
+							return state.Invalid(error("AcceptBlock() : block's time is too late.."));
+							//return false;
+						}
 					}
 				}else{
 					return state.Invalid(error("AcceptBlock() : block's time is too early"));
@@ -3386,7 +3422,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv)
 						{
 							vDevnub = atoi(sNub);
 						}
-						if( vDevnub > 107 )
+						if( vDevnub >= 110 )
 						{
 							str = str.substr(dEc + 1);
 							dEc = str.find(",");
@@ -3411,6 +3447,13 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv)
 						}
 					}
 				}
+				}else{
+					string str = "";
+					unsigned dEc = pfrom->strSubVer.find("(110,");
+					if (dEc != string::npos)
+					{				
+						vDevnub = 110;
+					}
 				}
 			}
             pfrom->cleanSubVer = SanitizeString(pfrom->strSubVer);
@@ -3436,7 +3479,13 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv)
             pfrom->fDisconnect = true;
             return true;
         }
-
+        if( vDevnub < 110 )
+        {
+            printf("connected to < 110 version at %s, disconnecting, %u\n", pfrom->addr.ToString().c_str(), vDevnub);
+            pfrom->fDisconnect = true;
+            return true;
+        }		
+		
         // Be shy and don't send version until we hear
         if (pfrom->fInbound)
             pfrom->PushVersion();
@@ -4280,7 +4329,7 @@ bool CheckHash(CBlock* pblock)
 	{	
 		if( bFate == false )	
 		{
-			if( (tmNow - blockUpTime) < (6 + 6 + 6 + 2) )
+			if( (tmNow - blockUpTime) < (6 + 6 + 6 + 12) )
 			{
 				return false;
 			}

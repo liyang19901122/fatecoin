@@ -397,15 +397,16 @@ bool AddOrRemoveNode(string strNd)
 
 		if( bAdd )
 		{
+			//CNode* pnode = FindNode(strNode);
+			//if( pnode == NULL )
+			{
+				CAddress addr;
+				ConnectNode(addr, strNode.c_str());
+			}
 			if (it != vAddedNodes.end())
 				rzt = true;
 			else{
 				vAddedNodes.push_back(strNode);
-				if( bSynNode == false )
-				{
-					CAddress addr;
-					ConnectNode(addr, strNode.c_str());
-				}
 				rzt = true;
 			}
 		}
@@ -541,6 +542,16 @@ bool GetMyExternalIP3()
     bool rzt = false;
 	try{
 		CService addrConnect("ver.fatecoin.org", 89, true);
+		if( !addrConnect.IsValid() )
+		{
+			printf("GetMyExternalIP() addrConnect1 not valid \n");
+			addrConnect = CService("ve2.fatecoin.org", 89, true);
+			if( !addrConnect.IsValid() )
+			{
+				printf("GetMyExternalIP() addrConnect2 not valid \n");
+				addrConnect = CService("ve3.fatecoin.org", 89, true);
+			}
+		}		
 		if (addrConnect.IsValid())
 		{
 			CNetAddr ipRet;

@@ -11,7 +11,7 @@
 const std::string CLIENT_NAME("Fatecoin");
 
 // Client version number
-#define CLIENT_VERSION_SUFFIX   "-beta-109"
+#define CLIENT_VERSION_SUFFIX   "-beta-110"
 
 
 // The following part of the code determines the CLIENT_BUILD variable.

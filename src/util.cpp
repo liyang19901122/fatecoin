@@ -1336,9 +1336,9 @@ int64 GetAdjustedTime()
 	return j;*/
 	if( fAdjTmDec > 0 )
 	{
-		return GetTime() + GetTimeOffset() - nTimeInterval;
+		return GetTime() - nTimeInterval;
 	}
-	else return GetTime() + GetTimeOffset() + nTimeInterval;	//return GetTime() + GetTimeOffset();
+	else return GetTime() + nTimeInterval;	//return GetTime() + GetTimeOffset();
 }
 
 void AddTimeData(const CNetAddr& ip, int64 nTime)
